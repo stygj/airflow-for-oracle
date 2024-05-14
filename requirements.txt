@@ -1,0 +1,14 @@
+apache-airflow==2.8.4
+psycopg2-binary
+apache-airflow-providers-postgres
+apache-airflow-providers-celery
+apache-airflow-providers-slack
+apache-airflow-providers-oracle[common.sql]
+numpy
+pandas
+pyarrow
+redis
+celery
+boto3
+pyathena
+virtualenv

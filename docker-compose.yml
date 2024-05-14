@@ -1,0 +1,108 @@
+services:
+  postgresql:
+    image: postgres:14.6
+    container_name: postgresql
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_INITDB_ARGS: '--data-checksums -E utf8 --no-locale'
+      POSTGRES_MULTIPLE_DATABASES: airflow
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      TZ: Asia/Seoul
+      LC_ALL: C.UTF-8
+    networks:
+      - kea-rems-network
+    
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+      - "6378:6379"
+    environment:
+      TZ: Asia/Seoul
+      LC_ALL: C.UTF-8
+    networks:
+      - kea-rems-network
+
+  airflow-webserver:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: airflow-webserver
+    container_name: airflow-webserver
+    command: webserver
+    ports:
+      - "9090:8080"
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./plugins:/opt/airflow/plugins
+    environment:
+      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://user:password@postgresql/airflow
+      AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://user:password@postgresql/airflow
+      AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
+      _AIRFLOW_DB_MIGRATE: 'true'
+      _AIRFLOW_WWW_USER_CREATE: 'true'
+      _AIRFLOW_WWW_USER_PASSWORD: admin
+      ORACLE_HOME: /usr/lib/oracle/11.2/client64
+      LD_LIBRARY_PATH: /usr/lib/oracle/11.2/client64/lib
+      TZ: Asia/Seoul
+      LC_ALL: C.UTF-8
+    networks:
+      - kea-rems-network
+
+  airflow-scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: airflow-scheduler
+    command: scheduler
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./data:/opt/airflow/data
+      - ./plugins:/opt/airflow/plugins
+    environment:
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql://user:password@postgresql/airflow
+      _AIRFLOW_DB_MIGRATE: 'true'
+      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+      AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://user:password@postgresql/airflow
+      AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
+      ORACLE_HOME: /usr/lib/oracle/11.2/client64
+      LD_LIBRARY_PATH: /usr/lib/oracle/11.2/client64/lib
+      TZ: Asia/Seoul
+      LC_ALL: C.UTF-8
+    networks:
+      - kea-rems-network
+
+  airflow-celery:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: airflow-celery
+    command: celery worker
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./plugins:/opt/airflow/plugins
+    environment:
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql://user:password@postgresql/airflow
+      _AIRFLOW_DB_MIGRATE: 'true'
+      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+      AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://user:password@postgresql/airflow
+      AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
+      ORACLE_HOME: /usr/lib/oracle/11.2/client64
+      LD_LIBRARY_PATH: /usr/lib/oracle/11.2/client64/lib
+      TZ: Asia/Seoul
+      LC_ALL: C.UTF-8
+    networks:
+      - kea-rems-network
+
+volumes:
+  db_data: {}
+
+networks:
+  kea-rems-network:
+    external: true
